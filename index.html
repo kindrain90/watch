@@ -48,6 +48,25 @@
         .status-upcoming { color: #ff922b; }
         .status-warning { color: #ff6b6b; font-weight: bold; animation: blink 1s infinite; }
         .status-ended { color: #868e96; }
+        .schedule-item {
+            background: #111;
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            border-left: 3px solid #4e73df;
+        }
+        .sch-time { color: #63e6be; font-weight: bold; font-family: monospace; }
+        .sch-theater { color: #adb5bd; font-size: 0.75rem; margin-right: 5px; }
+        .sch-title { 
+            flex-grow: 1; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+            margin: 0 8px;
+        }
 
         @keyframes blink {
             50% { opacity: 0.5; }
@@ -64,7 +83,6 @@
         .refresh-btn {
             width: 100%;
             padding: 12px;
-            margin-top: 20px;
             background: #333;
             border: none;
             color: #fff;
@@ -72,23 +90,40 @@
             font-size: 1rem;
             cursor: pointer;
         }
+        .sch-btn {
+            background: #4e73df;
+            margin-bottom: 10px;
+            margin-top: 20px;
+        }
         .refresh-btn:active { background: #444; }
         #loading { text-align: center; padding: 20px; color: #868e96; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h3>김해아울렛관</h3>
+        <h3 id="view-title">현장 운영 상황 (Pro)</h3>
         <div id="loading">데이터 불러오는 중...</div>
+        
+        <!-- 현황 뷰 -->
         <div id="movie-list" class="movie-list"></div>
+        
+        <!-- 시간표 뷰 (초기 숨김) -->
+        <div id="schedule-list" class="movie-list" style="display:none;"></div>
+        
         <div id="announcement" class="announcement" style="display:none;"></div>
-        <button class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
+        
+        <button id="toggle-btn" class="refresh-btn sch-btn" onclick="toggleView()">📅 전체 시간표 보기</button>
+        <button id="refresh-btn" class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
+        
         <div style="font-size: 0.7rem; color: #444; text-align: center; margin-top: 10px;" id="last-update"></div>
     </div>
 
     <script>
-        // [중요] 구글 앱스 스크립트 웹 앱 주소
-        const APP_URL = "https://script.google.com/macros/s/AKfycbyDfuOCI9C9hzR4AE2Kmt38Nt3qTPG-zK5pjJFWqMfno7sd_lpCikkHHXEbpkbR-h8/exec";
+        // [중요] 여기에 본인의 구글 앱스 스크립트 웹 앱 주소를 넣어주세요!
+        // 주소 끝에 ?action=data 가 붙어야 합니다.
+        const APP_URL = "https://script.google.com/macros/s/AKfycbw10GvgsGEf7LVY5FPqY2m9aeDv6lCyJk7VQGDdNQfUHoylvBwtqVqxTMJdem2znHMG/exec";
+        let cachedData = null;
+        let isScheduleView = false;
 
         async function fetchData() {
             if (!APP_URL || APP_URL.includes("실제_배포된")) {
@@ -104,7 +139,8 @@
             const script = document.createElement('script');
             
             window[callbackName] = function(data) {
-                renderUI(data);
+                cachedData = data;
+                renderUI();
                 delete window[callbackName];
                 document.body.removeChild(script);
                 loading.style.display = 'none';
@@ -119,34 +155,59 @@
             document.body.appendChild(script);
         }
 
-        function renderUI(data) {
-            // 전달사항 렌더링 (방어적 코드 보강: 객체 타입 자동 변환)
+        function toggleView() {
+            isScheduleView = !isScheduleView;
+            renderUI();
+        }
+
+        function renderUI() {
+            if (!cachedData) return;
+            const data = cachedData;
+
+            const movieListBox = document.getElementById('movie-list');
+            const scheduleListBox = document.getElementById('schedule-list');
+            const toggleBtn = document.getElementById('toggle-btn');
+            const viewTitle = document.getElementById('view-title');
+
+            if (isScheduleView) {
+                movieListBox.style.display = 'none';
+                scheduleListBox.style.display = 'flex';
+                toggleBtn.innerText = "🏠 현재 현황 보기";
+                viewTitle.innerText = "전체 시간표 (시작순)";
+                renderSchedule(data.allMovies);
+            } else {
+                movieListBox.style.display = 'flex';
+                scheduleListBox.style.display = 'none';
+                toggleBtn.innerText = "📅 전체 시간표 보기";
+                viewTitle.innerText = "현장 운영 상황 (Pro)";
+                renderStatus(data.movies, data.now);
+            }
+
+            // 전달사항 (공통)
             const announceBox = document.getElementById('announcement');
             if (data.announcement && (data.announcement.length > 0 || typeof data.announcement === 'object')) {
-                // 배열이면 첫 번째 항목, 아니면 데이터 자체를 사용
                 const latest = Array.isArray(data.announcement) ? data.announcement[0] : data.announcement;
-                
-                // 데이터에서 텍스트 추출 (문자열이면 그대로, 객체면 .text 필드 사용, 둘 다 아니면 JSON 문자열화)
-                let msg = typeof latest === 'string' ? latest : (latest.text || (typeof latest === 'object' ? JSON.stringify(latest) : String(latest)));
+                let msg = typeof latest === 'string' ? latest : (latest.text || "내용 없음");
                 let time = latest.time ? " [" + latest.time + "]" : "";
-                
                 announceBox.innerText = "📢 " + msg + time;
                 announceBox.style.display = 'block';
             } else {
                 announceBox.style.display = 'none';
             }
+        }
 
+        function renderStatus(movies, now) {
             // 상영 현황 렌더링
             let html = '';
-            for (let th in data.movies) {
-                let info = data.movies[th];
+            for (let th in movies) {
+                let info = movies[th];
                 let stClass = '';
                 let stText = '';
 
                 if (info.status === 'empty') continue;
 
                 if (info.status === 'running') {
-                    let remain = info.end - data.now;
+                    let remain = info.end - now;
                     if (remain <= 10 && remain >= 0) {
                         stClass = "status-warning";
                         stText = `퇴출임박 (${remain}분)`;
@@ -158,7 +219,7 @@
                         stText = `상영중 (${remain}분 남음)`;
                     }
                 } else if (info.status === 'advertising') {
-                    let remainAd = info.start - data.now;
+                    let remainAd = info.start - now;
                     stClass = "status-ad";
                     stText = `광고중 (${remainAd}분 후 상영)`;
                 } else if (info.status === 'ended') {
@@ -185,6 +246,33 @@
                 </div>`;
             }
             document.getElementById('movie-list').innerHTML = html;
+        }
+
+        function renderSchedule(allMovies) {
+            if (!allMovies) return;
+            
+            // 시작 시간 순 정렬
+            const sorted = [...allMovies].sort((a, b) => a.start - b.start);
+            
+            let html = '';
+            sorted.forEach(m => {
+                let movieTitle = m.movieName ? m.movieName : "영화 정보 없음";
+                let audience = m.audienceCnt ? m.audienceCnt : "0";
+
+                html += `
+                <div class="schedule-item" style="padding: 10px 8px; gap: 5px;">
+                    <div style="display: flex; flex-direction: column; min-width: 55px; line-height: 1.2;">
+                        <span class="sch-time">${m.tkStr}</span>
+                        <span style="font-size: 0.7rem; color: #868e96;">~${m.endStr}</span>
+                    </div>
+                    <span class="sch-title" style="font-size: 0.95rem; margin: 0;">${movieTitle}</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; min-width: 42px; line-height: 1.2;">
+                        <span class="sch-theater" style="margin: 0;">${m.theater.replace("관", "")}관</span>
+                        <span style="font-size: 0.75rem; color: #63e6be; font-weight: bold;">👤${audience}</span>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('schedule-list').innerHTML = html || '<div style="text-align:center; padding:20px; color:#868e96;">일정 없음</div>';
         }
 
         // 초기 실행 및 45초 주기로 갱신
