@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smartwatch Theater Viewer (Pro)</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            padding: 10px;
+            max-width: 100%;
+        }
+        h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #63e6be;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .movie-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .movie-item {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .room-name {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .status-running { color: #63e6be; }
+        .status-ad { color: #ffd43b; }
+        .status-upcoming { color: #ff922b; }
+        .status-warning { color: #ff6b6b; font-weight: bold; animation: blink 1s infinite; }
+        .status-ended { color: #868e96; }
+
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+
+        .announcement {
+            margin-top: 15px;
+            padding: 10px;
+            background: #2b2f33;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border-left: 4px solid #ff6b6b;
+        }
+        .refresh-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: #333;
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .refresh-btn:active { background: #444; }
+        #loading { text-align: center; padding: 20px; color: #868e96; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>현장 운영 상황 (Pro)</h3>
+        <div id="loading">데이터 불러오는 중...</div>
+        <div id="movie-list" class="movie-list"></div>
+        <div id="announcement" class="announcement" style="display:none;"></div>
+        <button class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
+        <div style="font-size: 0.7rem; color: #444; text-align: center; margin-top: 10px;" id="last-update"></div>
+    </div>
+
+    <script>
+        // [중요] 여기에 본인의 구글 앱스 스크립트 웹 앱 주소를 넣어주세요!
+        // 주소 끝에 ?action=data 가 붙어야 합니다.
+        const APP_URL = "https://script.google.com/macros/s/AKfycbyjazUG-XOV611sXhfcMOqcNYZl57CzZj4d_JMP57P4wRqd-t1cyqWP6fiqjB2YECM/exec";
+
+        async function fetchData() {
+            if (!APP_URL || APP_URL.includes("실제_배포된")) {
+                alert("배포된 웹 앱 주소를 설정해주세요!");
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(APP_URL + "?action=data");
+                const data = await response.json();
+                renderUI(data);
+                loading.style.display = 'none';
+                document.getElementById('last-update').innerText = "Last Update: " + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error(error);
+                loading.innerText = "서버 통신 오류 (주소 확인 필요)";
+            }
+        }
+
+        function renderUI(data) {
+            // 전달사항 렌더링
+            const announceBox = document.getElementById('announcement');
+            if (data.announcement) {
+                announceBox.innerText = "📢 " + data.announcement;
+                announceBox.style.display = 'block';
+            } else {
+                announceBox.style.display = 'none';
+            }
+
+            // 상영 현황 렌더링
+            let html = '';
+            for (let th in data.movies) {
+                let info = data.movies[th];
+                let stClass = '';
+                let stText = '';
+
+                if (info.status === 'empty') continue;
+
+                if (info.status === 'running') {
+                    let remain = info.end - data.now;
+                    if (remain <= 10 && remain >= 0) {
+                        stClass = "status-warning";
+                        stText = `퇴출임박 (${remain}분)`;
+                    } else if (remain <= 20) {
+                        stClass = "status-upcoming";
+                        stText = `곧종료 (${remain}분)`;
+                    } else {
+                        stClass = "status-running";
+                        stText = `상영중 (${remain}분 남음)`;
+                    }
+                } else if (info.status === 'advertising') {
+                    let remainAd = info.start - data.now;
+                    stClass = "status-ad";
+                    stText = `광고중 (${remainAd}분 후 상영)`;
+                } else if (info.status === 'ended') {
+                    stClass = "status-ended";
+                    stText = `종료 됨 (발권X)`;
+                } else if (info.status === 'upcoming') {
+                    stClass = "status-ended";
+                    stText = `대기중 (${info.tkStr || "?"})`;
+                }
+                
+                let movieTitle = info.movieName ? info.movieName : "영화 정보 없음";
+                let audience = info.audienceCnt ? info.audienceCnt + "명" : "0명";
+
+                html += `
+                <div class="movie-item">
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <span class="room-name">${th}</span>
+                        <span class="${stClass}">${stText}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.9rem; color: #ced4da; margin-top:4px;">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">${movieTitle}</span>
+                        <span style="color: #63e6be; font-weight: bold;">👤 ${audience}</span>
+                    </div>
+                </div>`;
+            }
+            document.getElementById('movie-list').innerHTML = html;
+        }
+
+        // 초기 실행 및 45초 주기로 갱신
+        fetchData();
+        setInterval(fetchData, 45000);
+    </script>
+</body>
+</html>
