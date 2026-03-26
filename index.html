@@ -87,8 +87,7 @@
     </div>
 
     <script>
-        // [중요] 여기에 본인의 구글 앱스 스크립트 웹 앱 주소를 넣어주세요!
-        // 주소 끝에 ?action=data 가 붙어야 합니다.
+        // [중요] 구글 앱스 스크립트 웹 앱 주소
         const APP_URL = "https://script.google.com/macros/s/AKfycbyDfuOCI9C9hzR4AE2Kmt38Nt3qTPG-zK5pjJFWqMfno7sd_lpCikkHHXEbpkbR-h8/exec";
 
         async function fetchData() {
@@ -121,11 +120,14 @@
         }
 
         function renderUI(data) {
-            // 전달사항 렌더링 (방어적 코드 추가)
+            // 전달사항 렌더링 (방어적 코드 보강: 객체 타입 자동 변환)
             const announceBox = document.getElementById('announcement');
             if (data.announcement && (data.announcement.length > 0 || typeof data.announcement === 'object')) {
+                // 배열이면 첫 번째 항목, 아니면 데이터 자체를 사용
                 const latest = Array.isArray(data.announcement) ? data.announcement[0] : data.announcement;
-                let msg = typeof latest === 'string' ? latest : (latest.text || "내용 없음");
+                
+                // 데이터에서 텍스트 추출 (문자열이면 그대로, 객체면 .text 필드 사용, 둘 다 아니면 JSON 문자열화)
+                let msg = typeof latest === 'string' ? latest : (latest.text || (typeof latest === 'object' ? JSON.stringify(latest) : String(latest)));
                 let time = latest.time ? " [" + latest.time + "]" : "";
                 
                 announceBox.innerText = "📢 " + msg + time;
