@@ -197,14 +197,24 @@
         }
 
         function renderStatus(movies, now) {
-            // 상영 현황 렌더링
             let html = '';
-            for (let th in movies) {
+            for (let i = 1; i <= 6; i++) {
+                let th = i + "관";
                 let info = movies[th];
-                let stClass = '';
-                let stText = '';
+                let stClass = 'status-ended';
+                let stText = '상영 종료';
 
-                if (info.status === 'empty') continue;
+                if (!info || info.status === 'empty') {
+                    // 상영 일정이 아예 없거나 모두 종료된 경우 표시
+                    html += `
+                    <div class="movie-item">
+                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <span class="room-name">${th}</span>
+                            <span class="${stClass}">일정 없음</span>
+                        </div>
+                    </div>`;
+                    continue;
+                }
 
                 if (info.status === 'running') {
                     let remain = info.end - now;
