@@ -89,7 +89,7 @@
     <script>
         // [중요] 여기에 본인의 구글 앱스 스크립트 웹 앱 주소를 넣어주세요!
         // 주소 끝에 ?action=data 가 붙어야 합니다.
-        const APP_URL = "https://script.google.com/macros/s/AKfycbydZuigFVr-7iIAcEfI5VHcq92qCbt0N4umqtUNpHndF2osMz7xqp1s3qplknZ63HL6/exec";
+        const APP_URL = "https://script.google.com/macros/s/AKfycbyDfuOCI9C9hzR4AE2Kmt38Nt3qTPG-zK5pjJFWqMfno7sd_lpCikkHHXEbpkbR-h8/exec";
 
         async function fetchData() {
             if (!APP_URL || APP_URL.includes("실제_배포된")) {
@@ -100,16 +100,24 @@
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
             
-            try {
-                const response = await fetch(APP_URL + "?action=data");
-                const data = await response.json();
+            // CORS 문제를 피하기 위해 JSONP 방식을 사용합니다.
+            const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
+            const script = document.createElement('script');
+            
+            window[callbackName] = function(data) {
                 renderUI(data);
+                delete window[callbackName];
+                document.body.removeChild(script);
                 loading.style.display = 'none';
                 document.getElementById('last-update').innerText = "Last Update: " + new Date().toLocaleTimeString();
-            } catch (error) {
-                console.error(error);
-                loading.innerText = "서버 통신 오류 (주소 확인 필요)";
-            }
+            };
+
+            script.src = APP_URL + (APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=data&callback=' + callbackName;
+            script.onerror = function() {
+                loading.innerText = "서버 통신 오류 (권한 또는 주소 확인 필요)";
+                document.body.removeChild(script);
+            };
+            document.body.appendChild(script);
         }
 
         function renderUI(data) {
