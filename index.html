@@ -204,7 +204,7 @@
 <body>
     <div class="container">
         <h3 id="view-title">현장 운영 상황 (Pro)</h3>
-        <div id="loading">데이터 불러오는 중...</div>
+        <!-- <div id="loading">데이터 불러오는 중...</div> -->
 
         <!-- 현황 뷰 -->
         <div id="movie-list" class="movie-list"></div>
@@ -245,7 +245,7 @@
             }
 
             const loading = document.getElementById('loading');
-            loading.style.display = 'block';
+            // loading.style.display = 'block';
 
             // CORS 문제를 피하기 위해 JSONP 방식을 사용합니다.
             const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
@@ -256,7 +256,7 @@
                 renderUI();
                 delete window[callbackName];
                 document.body.removeChild(script);
-                loading.style.display = 'none';
+                // if (loading) loading.style.display = 'none';
                 document.getElementById('last-update').innerText = "Last Update: " + new Date().toLocaleTimeString();
             };
 
