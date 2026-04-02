@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,10 +14,12 @@
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
+
         .container {
             padding: 10px;
             max-width: 100%;
         }
+
         h3 {
             margin: 0;
             font-size: 1.1rem;
@@ -26,11 +29,13 @@
             margin-bottom: 10px;
             text-align: center;
         }
+
         .movie-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
+
         .movie-item {
             background: #1a1a1a;
             padding: 10px;
@@ -39,15 +44,34 @@
             flex-direction: column;
             gap: 4px;
         }
+
         .room-name {
             font-weight: bold;
             font-size: 1rem;
         }
-        .status-running { color: #63e6be; }
-        .status-ad { color: #ffd43b; }
-        .status-upcoming { color: #ff922b; }
-        .status-warning { color: #ff6b6b; font-weight: bold; animation: blink 1s infinite; }
-        .status-ended { color: #868e96; }
+
+        .status-running {
+            color: #63e6be;
+        }
+
+        .status-ad {
+            color: #ffd43b;
+        }
+
+        .status-upcoming {
+            color: #ff922b;
+        }
+
+        .status-warning {
+            color: #ff6b6b;
+            font-weight: bold;
+            animation: blink 1s infinite;
+        }
+
+        .status-ended {
+            color: #868e96;
+        }
+
         .schedule-item {
             background: #111;
             padding: 8px 10px;
@@ -58,18 +82,31 @@
             font-size: 0.85rem;
             border-left: 3px solid #4e73df;
         }
-        .sch-time { color: #63e6be; font-weight: bold; font-family: monospace; }
-        .sch-theater { color: #adb5bd; font-size: 0.75rem; margin-right: 5px; }
-        .sch-title { 
-            flex-grow: 1; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            white-space: nowrap; 
+
+        .sch-time {
+            color: #63e6be;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .sch-theater {
+            color: #adb5bd;
+            font-size: 0.75rem;
+            margin-right: 5px;
+        }
+
+        .sch-title {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
             margin: 0 8px;
         }
 
         @keyframes blink {
-            50% { opacity: 0.5; }
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .announcement {
@@ -80,6 +117,7 @@
             font-size: 0.9rem;
             border-left: 4px solid #ff6b6b;
         }
+
         .refresh-btn {
             width: 100%;
             padding: 12px;
@@ -90,31 +128,106 @@
             font-size: 1rem;
             cursor: pointer;
         }
+
         .sch-btn {
             background: #4e73df;
             margin-bottom: 10px;
             margin-top: 20px;
         }
-        .refresh-btn:active { background: #444; }
-        #loading { text-align: center; padding: 20px; color: #868e96; }
+
+        .movie-item:active {
+            background: #333;
+        }
+
+        #detail-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 280px;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #63e6be;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            text-align: center;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .modal-btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .schedule-item {
+            background: #111;
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            border-left: 3px solid #4e73df;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h3 id="view-title">김해아울렛관</h3>
+        <h3 id="view-title">현장 운영 상황 (Pro)</h3>
         <div id="loading">데이터 불러오는 중...</div>
-        
+
         <!-- 현황 뷰 -->
         <div id="movie-list" class="movie-list"></div>
-        
+
         <!-- 시간표 뷰 (초기 숨김) -->
         <div id="schedule-list" class="movie-list" style="display:none;"></div>
-        
+
         <div id="announcement" class="announcement" style="display:none;"></div>
-        
+
+        <!-- 상세 정보 팝업 (모달) 추가 -->
+        <div id="detail-modal">
+            <div class="modal-content">
+                <div id="detail-modal-title" class="modal-title">상세 정보</div>
+                <div id="detail-modal-body" class="modal-body">
+                    <!-- 데이터 동적 삽입 -->
+                </div>
+                <button onclick="closeDetailModal()" class="modal-btn">닫기</button>
+            </div>
+        </div>
+
         <button id="toggle-btn" class="refresh-btn sch-btn" onclick="toggleView()">📅 전체 시간표 보기</button>
         <button id="refresh-btn" class="refresh-btn" onclick="fetchData()">🔄 새로고침</button>
-        
+
         <div style="font-size: 0.7rem; color: #444; text-align: center; margin-top: 10px;" id="last-update"></div>
     </div>
 
@@ -133,12 +246,12 @@
 
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
-            
+
             // CORS 문제를 피하기 위해 JSONP 방식을 사용합니다.
             const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
             const script = document.createElement('script');
-            
-            window[callbackName] = function(data) {
+
+            window[callbackName] = function (data) {
                 cachedData = data;
                 renderUI();
                 delete window[callbackName];
@@ -148,7 +261,7 @@
             };
 
             script.src = APP_URL + (APP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=data&callback=' + callbackName;
-            script.onerror = function() {
+            script.onerror = function () {
                 loading.innerText = "서버 통신 오류 (권한 또는 주소 확인 필요)";
                 document.body.removeChild(script);
             };
@@ -205,7 +318,6 @@
                 let stText = '상영 종료';
 
                 if (!info || info.status === 'empty') {
-                    // 상영 일정이 아예 없거나 모두 종료된 경우 표시
                     html += `
                     <div class="movie-item">
                         <div style="display: flex; justify-content: space-between; width: 100%;">
@@ -239,12 +351,12 @@
                     stClass = "status-ended";
                     stText = `대기중 (${info.tkStr || "?"})`;
                 }
-                
+
                 let movieTitle = info.movieName ? info.movieName : "영화 정보 없음";
-                let audience = info.audienceCnt ? info.audienceCnt + "명" : "0명";
+                let audience = (info.audienceCnt && info.audienceCnt !== "0") ? info.audienceCnt + "명" : "0명";
 
                 html += `
-                <div class="movie-item">
+                <div class="movie-item" onclick="showTheaterDetail('${th}')" style="cursor:pointer;">
                     <div style="display: flex; justify-content: space-between; width: 100%;">
                         <span class="room-name">${th}</span>
                         <span class="${stClass}">${stText}</span>
@@ -258,12 +370,49 @@
             document.getElementById('movie-list').innerHTML = html;
         }
 
+        /**
+         * 상영관 상세 팝업 표시 (워치 외부용)
+         */
+        function showTheaterDetail(hallName) {
+            if (!cachedData || !cachedData.movies[hallName]) return;
+            const info = cachedData.movies[hallName];
+            const body = document.getElementById('detail-modal-body');
+
+            let html = `
+                <div style="color:#adb5bd; font-size:0.8rem; margin-bottom:6px; text-align:center;">${hallName} | ${info.movieName || '정보 없음'}</div>
+                <div style="background:#222; border-radius:10px; padding:12px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>전체 입장객</span>
+                        <span style="color:#63e6be; font-weight:bold;">👤 ${info.audienceCnt || '0'}명</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-top:1px solid #333; padding-top:10px;">
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:0.75rem; color:#888;">👵 경로</span>
+                            <span style="color:#0095f6; font-weight:bold; font-size:1.05rem;">${info.seniorCnt || '0'}명</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                            <span style="font-size:0.75rem; color:#888;">♿ 복지</span>
+                            <span style="color:#00aa00; font-weight:bold; font-size:1.05rem;">${info.welfareCnt || '0'}명</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            body.innerHTML = html;
+            document.getElementById('detail-modal-title').innerText = `${hallName} 상세 현황`;
+            document.getElementById('detail-modal').style.display = 'flex';
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+        }
+
         function renderSchedule(allMovies) {
             if (!allMovies) return;
-            
+
             // 시작 시간 순 정렬
             const sorted = [...allMovies].sort((a, b) => a.start - b.start);
-            
+
             let html = '';
             sorted.forEach(m => {
                 let movieTitle = m.movieName ? m.movieName : "영화 정보 없음";
@@ -290,4 +439,5 @@
         setInterval(fetchData, 45000);
     </script>
 </body>
+
 </html>
