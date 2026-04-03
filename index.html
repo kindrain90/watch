@@ -236,8 +236,9 @@
     </div>
 
     <script>
-        // [중요] 여기에 본인의 구글 앱스 스크립트 웹 앱 주소를 넣어주세요!
-        // 주소 끝에 ?action=data 가 붙어야 합니다.
+        // [중요!!!] 스크립트 수정 후 반드시 '새 배포'를 진행하고, 
+        // 해당 웹 앱 주소를 아래 APP_URL에 붙여넣어야 전송 기능이 작동합니다.
+        // 주소 끝에 ?action=data 가 붙으면 안 됩니다. (코드에서 자동으로 붙임)
         const APP_URL = "https://script.google.com/macros/s/AKfycbw10GvgsGEf7LVY5FPqY2m9aeDv6lCyJk7VQGDdNQfUHoylvBwtqVqxTMJdem2znHMG/exec";
         let cachedData = null;
         let isScheduleView = false;
@@ -514,12 +515,17 @@
             const script = document.createElement('script');
             
             window[callbackName] = function(res) {
-                input.value = "";
+                if (res && res.error) {
+                    alert("서버 오류: " + res.error);
+                } else {
+                    input.value = "";
+                    fetchData(); // 전송 후 목록 새로고침
+                }
+                
                 if (btn) {
                     btn.disabled = false;
                     btn.innerText = "전송";
                 }
-                fetchData(); // 전송 후 목록 새로고침
                 delete window[callbackName];
                 document.body.removeChild(script);
             };
@@ -529,7 +535,7 @@
                          'action=send&text=' + encodeURIComponent(text) + '&callback=' + callbackName;
             
             script.onerror = function() {
-                alert("전송 중 오류가 발생했습니다.");
+                alert("전송 중 오류가 발생했습니다.\n\n[체크리스트]\n1. APP_URL이 최신 배포 주소인지 확인\n2. 가스(GAS) 내 '전송 액션' 코드가 포함되었는지 확인\n3. 웹 앱이 '모든 사용자(Anyone)' 권한으로 배포되었는지 확인");
                 if (btn) {
                     btn.disabled = false;
                     btn.innerText = "전송";
