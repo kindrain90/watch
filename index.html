@@ -308,17 +308,27 @@
                 let announceHtml = "";
                 announcements.forEach(item => {
                     const isSystem = item.isSystem === true;
+                    const isConfirmed = item.confirmedBy && item.confirmedBy.length > 0;
+                    
+                    // [필터] 이미 확인된 시스템 알람은 외부 워치에서도 숨김
+                    if (isSystem && isConfirmed) return;
+
                     // Pro 버전(External) 블랙 테마에 맞는 색상 배합
                     const borderColor = isSystem ? '#3b82f6' : '#f4e05b';
                     const textColor = isSystem ? '#dbeafe' : '#fff';
                     const timeColor = isSystem ? '#93c5fd' : '#fff8be';
                     const titlePrefix = isSystem ? '(자동)' : '';
                     
+                    const confirmBtn = isSystem 
+                        ? `<button onclick="confirmSystemNotice('${item.id}', this)" style="width:100%; margin-top:10px; padding:10px; background:#1e40af; color:#fff; border:none; border-radius:8px; font-weight:bold; font-size:0.95rem;">[ 확인완료 ]</button>`
+                        : '';
+
                     announceHtml += `
-                        <div style="margin-bottom:10px; padding:10px; background:#1e2226; border-radius:8px; border-left:4px solid ${borderColor}; font-size:0.85rem;">
-                            <div style="color:${timeColor}; font-size:0.7rem; font-weight:800; margin-bottom:4px; opacity:0.9;">🕒 ${item.time} ${titlePrefix}</div>
-                            <div style="color:${textColor}; font-weight:bold; line-height:1.4;">${item.text}</div>
-                            ${(item.confirmedBy && item.confirmedBy.length > 0) ? `<div style="font-size:0.7rem; color:#94a3b8; margin-top:6px; border-top:1px solid #333; padding-top:4px;">✅ 확인: ${item.confirmedBy.join(', ')}</div>` : ''}
+                        <div style="margin-bottom:10px; padding:12px; background:#1e2226; border-radius:8px; border-left:4px solid ${borderColor}; font-size:0.85rem;">
+                            <div style="color:${timeColor}; font-size:0.7rem; font-weight:800; margin-bottom:6px; opacity:0.9;">🕒 ${item.time} ${titlePrefix}</div>
+                            <div style="color:${textColor}; font-weight:bold; line-height:1.4; font-size:0.95rem;">${item.text}</div>
+                            ${confirmBtn}
+                            ${(item.confirmedBy && item.confirmedBy.length > 0) ? `<div style="font-size:0.7rem; color:#94a3b8; margin-top:8px; border-top:1px solid #333; padding-top:6px;">✅ 확인: ${item.confirmedBy.join(', ')}</div>` : ''}
                         </div>
                     `;
                 });
@@ -447,6 +457,36 @@
                 </div>`;
             });
             document.getElementById('schedule-list').innerHTML = html || '<div style="text-align:center; padding:20px; color:#868e96;">일정 없음</div>';
+        }
+
+        function confirmSystemNotice(id, btn) {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "처리 중...";
+            }
+            
+            const callbackName = 'jsonpConfirm_' + Math.round(100000 * Math.random());
+            const script = document.createElement('script');
+            
+            window[callbackName] = function(res) {
+                fetchData(); // 새로고침하여 제거 확인
+                delete window[callbackName];
+                document.body.removeChild(script);
+            };
+
+            // 외부 서버이기 때문에 JSONP 방식으로 confirm 액션 호출
+            script.src = APP_URL + (APP_URL.indexOf('?') >= 0 ? '&' : '?') + 
+                         'action=confirm&id=' + id + '&name=외부워치&callback=' + callbackName;
+            
+            script.onerror = function() {
+                alert("확인 처리 중 오류가 발생했습니다.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "[ 확인완료 ]";
+                }
+                document.body.removeChild(script);
+            };
+            document.body.appendChild(script);
         }
 
         // 초기 실행 및 45초 주기로 갱신
