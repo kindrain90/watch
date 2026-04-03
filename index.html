@@ -304,14 +304,13 @@
             const announceBox = document.getElementById('announcement');
             const announcements = Array.isArray(data.announcement) ? data.announcement : (data.announcement ? [data.announcement] : []);
             
+            let announceHtml = "";
+            
             if (announcements.length > 0) {
-                let announceHtml = "";
                 announcements.forEach(item => {
                     const isSystem = item.isSystem === true;
-                    const isConfirmed = item.confirmedBy && item.confirmedBy.length > 0;
-                    
-                    // [필터] 이미 확인된 시스템 알람은 외부 워치에서도 숨김
-                    if (isSystem && isConfirmed) return;
+                    // [수정] 확인된 모든 알람(시스템+일반) 숨김
+                    if (item.confirmedBy && item.confirmedBy.length > 0) return;
 
                     // Pro 버전(External) 블랙 테마에 맞는 색상 배합
                     const borderColor = isSystem ? '#3b82f6' : '#f4e05b';
@@ -319,25 +318,34 @@
                     const timeColor = isSystem ? '#93c5fd' : '#fff8be';
                     const titlePrefix = isSystem ? '(자동)' : '';
                     
-                    const confirmBtn = isSystem 
-                        ? `<button onclick="confirmSystemNotice('${item.id}', this)" style="width:100%; margin-top:10px; padding:10px; background:#1e40af; color:#fff; border:none; border-radius:8px; font-weight:bold; font-size:0.95rem;">[ 확인완료 ]</button>`
-                        : '';
+                    // [확장] 모든 알람에 대해 확인 버튼 제공
+                    const confirmBtn = `<button onclick="confirmSystemNotice('${item.id}', this)" style="width:100%; margin-top:10px; padding:10px; background:#1e40af; color:#fff; border:none; border-radius:8px; font-weight:bold; font-size:0.95rem;">[ 확인완료 ]</button>`;
 
                     announceHtml += `
                         <div style="margin-bottom:10px; padding:12px; background:#1e2226; border-radius:8px; border-left:4px solid ${borderColor}; font-size:0.85rem;">
                             <div style="color:${timeColor}; font-size:0.7rem; font-weight:800; margin-bottom:6px; opacity:0.9;">🕒 ${item.time} ${titlePrefix}</div>
                             <div style="color:${textColor}; font-weight:bold; line-height:1.4; font-size:0.95rem;">${item.text}</div>
                             ${confirmBtn}
-                            ${(item.confirmedBy && item.confirmedBy.length > 0) ? `<div style="font-size:0.7rem; color:#94a3b8; margin-top:8px; border-top:1px solid #333; padding-top:6px;">✅ 확인: ${item.confirmedBy.join(', ')}</div>` : ''}
+                            ${(item.confirmedBy && item.confirmedBy.length > 0) ? `<div style="font-size:0.7rem; color:#94a3b8; margin-top:8px; border-top:1px solid #333; padding-top:4px;">✅ 확인: ${item.confirmedBy.join(', ')}</div>` : ''}
                         </div>
                     `;
                 });
-                
-                // 불필요한 배경 제거하고 리스트 삽입
+            }
+
+            if (announceHtml || true) { // 입력창은 항상 노출
+                announceBox.innerHTML = `
+                    <div id="external-notice-list" style="max-height: 200px; overflow-y: auto;">
+                        ${announceHtml || '<div style="text-align:center; padding:20px; color:#666; font-size:0.8rem;">전달사항이 없습니다.</div>'}
+                    </div>
+                    <div style="display: flex; gap: 5px; border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
+                        <input type="text" id="watch-input" placeholder="전달사항 입력..." 
+                               style="flex: 1; background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; font-size: 0.95rem; outline: none;">
+                        <button onclick="sendNotice(this)" style="background: #1e40af; color: #fff; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold;">전송</button>
+                    </div>
+                `;
                 announceBox.style.background = "transparent";
                 announceBox.style.padding = "0";
                 announceBox.style.border = "none";
-                announceBox.innerHTML = announceHtml;
                 announceBox.style.display = 'block';
             } else {
                 announceBox.style.display = 'none';
@@ -483,6 +491,48 @@
                 if (btn) {
                     btn.disabled = false;
                     btn.innerText = "[ 확인완료 ]";
+                }
+                document.body.removeChild(script);
+            };
+            document.body.appendChild(script);
+        }
+
+        /**
+         * 워치에서 공지(전달사항) 전송 (JSONP)
+         */
+        function sendNotice(btn) {
+            const input = document.getElementById('watch-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "⏳";
+            }
+
+            const callbackName = 'jsonpSend_' + Math.round(100000 * Math.random());
+            const script = document.createElement('script');
+            
+            window[callbackName] = function(res) {
+                input.value = "";
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "전송";
+                }
+                fetchData(); // 전송 후 목록 새로고침
+                delete window[callbackName];
+                document.body.removeChild(script);
+            };
+
+            // 외부 서버이기 때문에 JSONP 방식으로 send 액션 호출
+            script.src = APP_URL + (APP_URL.indexOf('?') >= 0 ? '&' : '?') + 
+                         'action=send&text=' + encodeURIComponent(text) + '&callback=' + callbackName;
+            
+            script.onerror = function() {
+                alert("전송 중 오류가 발생했습니다.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "전송";
                 }
                 document.body.removeChild(script);
             };
